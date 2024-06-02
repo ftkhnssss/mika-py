@@ -1,17 +1,27 @@
 from dotenv import load_dotenv
-load_dotenv()
 from flask import Flask, render_template, request, flash, redirect, url_for, session
-import os
 from flask_mail import Mail, Message
-from config import Config
+import os
 import google.generativeai as genai
 
 app = Flask(__name__)
-app.config.from_object(Config)
+load_dotenv()
+
+# Set up Flask-Mail
+app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER')
+app.config['MAIL_PORT'] = os.getenv('MAIL_PORT')
+app.config['MAIL_USE_TLS'] = os.getenv('MAIL_USE_TLS') == 'True'
+app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
+app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER')
 mail = Mail(app)
-app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
+
+# Set up Generative AI
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
+# Generate a secret key
+secret_key = os.urandom(24)
+app.config["SECRET_KEY"] = secret_key
 
 # Rendering loader page
 @app.route("/", methods=['GET', 'POST'])
@@ -33,13 +43,9 @@ def about():
 def contact():
     return render_template("contact.html")
 
-
-data= []
-
 # Endpoint to handle text and store it in the database
 @app.route("/gemini", methods=['GET', 'POST'])
 def text():
-
     data = session.get('data', [])
 
     if request.method == "POST":
@@ -61,12 +67,10 @@ def text():
 
     return render_template("index.html", data=data[::-1])
 
-
 @app.route("/logout")
 def logout():
     session.pop('data', None)
     return redirect(url_for('load'))
-
 
 # Endpoint to handle form submission for sending an email
 @app.route('/send-mail', methods=['POST'])
@@ -79,7 +83,7 @@ def send_email():
     # Checking if all required fields are filled before proceeding
     if subject and mail_address and message_content:
         # Creating an email message object using Flask-Mail's Message class
-        msg = Message(f'{subject}', sender=f'{mail_address}', recipients=['a.dizdar00@gmail.com'])
+        msg = Message(subject, sender=mail_address, recipients=['ftkhnssss3@gmail.com'])
         
         # Rendering HTML content for the email using a Jinja template named 'mail.html'
         html_content = render_template('mail.html', subject=subject, mail_adress=mail_address, content=message_content)
@@ -90,7 +94,6 @@ def send_email():
         flash("Email sent!", "success")
     
     return render_template("contact.html")
-
 
 # Running the Flask app
 if __name__ == '__main__':
